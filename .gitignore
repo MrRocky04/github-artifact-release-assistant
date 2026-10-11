@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+frontend/node_modules/
+.artifact-assistant/
+questions_config.json
+.env
+.env.*
+!.env.example
+*.aar
+*.zip
+.DS_Store
+Thumbs.db

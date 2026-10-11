@@ -54,3 +54,79 @@ parser.py             original local-search helper (no longer used by the UI)
 config.py             paths, port, defaults
 frontend/             React source (src/) and built site (dist/)
 ```
+
+## Architecture
+
+The application uses a React frontend with a Python backend. The backend manages the release workflow and executes Git and GitHub CLI commands to perform repository operations.
+
+                    +----------------------+
+                    |    User / Browser    |
+                    +----------+-----------+
+                               |
+                               v
+                    +----------------------+
+                    |     React Web UI     |
+                    |     (Frontend)       |
+                    +----------+-----------+
+                               |
+                               | HTTP / JSON API
+                               v
+                    +----------------------+
+                    |  Python HTTP Server  |
+                    |      server.py       |
+                    +----------+-----------+
+                               |
+                +--------------+--------------+
+                |              |              |
+                v              v              v
+    +------------------+ +----------------+ +------------------+
+    | Question         | | Release        | | AAR Upload       |
+    | Management       | | Workflow       | | Handler          |
+    | questions.py     | | workflow.py    | | server.py        |
+    +--------+---------+ +--------+-------+ +--------+---------+
+             |                    |                  |
+             v                    |                  v
+    +------------------+          |         +------------------+
+    | questions_config |          |         | Local AAR Uploads |
+    | .json            |          |         | .artifact-        |
+    +------------------+          |         | assistant/uploads |
+                                  |
+                    +-------------+-------------+
+                    |             |             |
+                    v             v             v
+           +----------------+ +-------------+ +------------------+
+           | Report         | | GitHub CLI  | | Local Repository |
+           | Generator      | | Helpers     | | Workspace        |
+           | report_        | | github_     | | .artifact-       |
+           | generator.py   | | cli.py      | | assistant/       |
+           +-------+--------+ +------+------+ | repositories/    |
+                   |                 |        +------------------+
+                   v                 v
+           +----------------+ +------------------+
+           | README / PR    | | Git + GitHub CLI  |
+           | Content        | | (gh)              |
+           +----------------+ +--------+---------+
+                                       |
+                                       v
+                              +--------------------+
+                              | Target GitHub      |
+                              | Repository         |
+                              +--------------------+
+
+### Main Components
+
+- **React Frontend:** Provides the artifact upload interface, release questionnaire, change review, and question management.
+- **Python HTTP Server:** Serves the built frontend and handles API requests from the browser.
+- **Release Workflow:** Validates questionnaire answers, prepares branch changes, and coordinates the selected operation.
+- **Question Management:** Stores the default and user-added questions in `questions_config.json`.
+- **Report Generator:** Creates release documentation for `README.md` and the pull request description.
+- **Git and GitHub CLI Helpers:** Handle repository cloning, branch operations, commits, pushes, GitHub releases, and pull requests.
+- **Local Workspace:** Stores uploaded AAR files and the working repository clones on the user's computer.
+
+## Operation Behaviour
+
+| Operation | Result |
+|---|---|
+| **Upload Artifact** | Commits and pushes the AAR to the selected branch. It does not create a GitHub release/tag or pull request. |
+| **Release / Questionnaire Information** | Records the AAR and release information, pushes the changes, creates a GitHub release/tag with the AAR attached when applicable, and opens a pull request. |
+

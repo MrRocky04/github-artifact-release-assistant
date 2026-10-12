@@ -81,29 +81,102 @@ frontend/
 
 The application uses a React frontend with a Python backend. The backend manages the release workflow and executes Git and GitHub CLI commands to perform repository operations.
 
+## Workflow
+
+```mermaid
 flowchart TD
-    A["User / Browser"] <--> B["React Web UI<br/>(Frontend)"]
+    A(["START<br/>Open Artifact Release Assistant"]) --> B["Select and upload AAR"]
+    B --> C{"Is the AAR valid?<br/>Extension and ZIP signature"}
+    C -- No --> E["Display validation error"]
+    E --> B
+    C -- Yes --> D["Enter artifact information<br/>Version · Repository · Source branch"]
+    D --> F{"Choose operation"}
 
-    B <-->|"HTTP / JSON API"| C["Python HTTP Server<br/>(server.py)"]
+    subgraph UP["01 · UPLOAD ARTIFACT"]
+        direction TB
+        U1["Enter optional upload details"]
+        U2["Upload-only workflow"]
+        U1 --> U2
+    end
 
-    C --> D["Question Management<br/>(questions.py)"]
-    C --> E["Release Workflow<br/>(workflow.py)"]
-    C --> F["AAR Upload Handler<br/>(server.py)"]
+    subgraph REL["02 · RELEASE & QUESTIONNAIRE"]
+        direction TB
+        R1["Complete release information"]
+        R2{"Select artifact purpose"}
+        R3["Internal Testing"]
+        R4["Personal Testing"]
+        R5["Production"]
+        R6["Answer applicable testing questions"]
+        R7["Review questionnaire summary"]
 
-    D <--> G[("questions_config.json")]
+        R1 --> R2
+        R2 --> R3
+        R2 --> R4
+        R2 --> R5
+        R3 --> R6
+        R4 --> R6
+        R5 --> R6
+        R6 --> R7
+    end
 
-    F --> H[("Local AAR Uploads<br/>.artifact-assistant/uploads")]
+    F -- Upload only --> U1
+    F -- Full release --> R1
 
-    E <--> I["Report Generator<br/>(report_generator.py)"]
-    I --> J["README / Pull Request Content"]
+    U2 --> BR
+    R7 --> BR
 
-    E <--> K["GitHub CLI Helpers<br/>(github_cli.py)"]
-    E <--> L[("Local Repository Workspace<br/>.artifact-assistant/repositories")]
+    BR{"Choose branch strategy"}
+    BR -- New branch --> NB["Create branch from source branch"]
+    BR -- Existing branch --> EB["Verify remote branch<br/>and check for an open PR"]
 
-    K <--> M["Git and GitHub CLI (gh)"]
-    M <--> N[("Target GitHub Repository")]
+    NB --> PREP
+    EB --> PREP
 
-    J -. "Generated content is applied" .-> E
+    PREP["Prepare repository changes<br/>Add or update AAR<br/>Update README.md for full releases"]
+    PREP --> RV["Review proposed changes<br/>and README diff where applicable"]
+    RV --> CONF{"Confirm changes?"}
+
+    CONF -- No --> CANCEL["Discard planned changes"]
+    CANCEL --> BR
+
+    CONF -- Yes --> PUSH["Commit and push changes<br/>using Git"]
+
+    PUSH --> MODE{"Which operation was selected?"}
+
+    MODE -- Upload only --> UPDONE(["AAR pushed to branch<br/>No release/tag or PR created"])
+
+    MODE -- Full release --> EXIST{"Release/tag already exists?"}
+
+    EXIST -- No --> CREATE["Create GitHub release/tag<br/>Attach AAR as release asset"]
+    EXIST -- Yes --> KEEP["Preserve existing release/tag<br/>Do not recreate or move it"]
+
+    CREATE --> PR["Create Pull Request<br/>against the source branch"]
+    KEEP --> PR
+
+    UPDONE --> DONE(["WORKFLOW COMPLETE"])
+    PR --> DONE
+
+    classDef start fill:#102A43,stroke:#5EEAD4,color:#F0FDFA,stroke-width:2px
+    classDef process fill:#172554,stroke:#60A5FA,color:#EFF6FF,stroke-width:1.5px
+    classDef decision fill:#3B0764,stroke:#C084FC,color:#FAF5FF,stroke-width:2px
+    classDef upload fill:#422006,stroke:#FBBF24,color:#FFFBEB,stroke-width:1.5px
+    classDef release fill:#4A1942,stroke:#E879F9,color:#FDF4FF,stroke-width:1.5px
+    classDef storage fill:#123047,stroke:#38BDF8,color:#F0F9FF,stroke-width:1.5px
+    classDef success fill:#064E3B,stroke:#34D399,color:#ECFDF5,stroke-width:2px
+    classDef warning fill:#7F1D1D,stroke:#F87171,color:#FEF2F2,stroke-width:1.5px
+
+    class A,D,BR,PREP,RV,PUSH process
+    class C,F,R2,CONF,MODE,EXIST decision
+    class U1,U2,UPDONE upload
+    class R1,R3,R4,R5,R6,R7,CREATE,KEEP,PR release
+    class NB,EB storage
+    class DONE success
+    class E warning
+
+    style UP fill:#211707,stroke:#F59E0B,stroke-width:2px,color:#FDE68A
+    style REL fill:#26132B,stroke:#D946EF,stroke-width:2px,color:#F5D0FE
+```
+
 
 ### Main Components
 

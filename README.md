@@ -77,6 +77,50 @@ frontend/
 ```
 
 `frontend/dist/` and `frontend/node_modules/` are generated locally and are not committed. Run the build commands above before starting the app from a fresh clone.
+## Architecture
+
+The application uses a React frontend with a Python backend. The backend manages the release workflow and executes Git and GitHub CLI commands to perform repository operations.
+
+flowchart TD
+    A["User / Browser"] <--> B["React Web UI<br/>(Frontend)"]
+
+    B <-->|"HTTP / JSON API"| C["Python HTTP Server<br/>(server.py)"]
+
+    C --> D["Question Management<br/>(questions.py)"]
+    C --> E["Release Workflow<br/>(workflow.py)"]
+    C --> F["AAR Upload Handler<br/>(server.py)"]
+
+    D <--> G[("questions_config.json")]
+
+    F --> H[("Local AAR Uploads<br/>.artifact-assistant/uploads")]
+
+    E <--> I["Report Generator<br/>(report_generator.py)"]
+    I --> J["README / Pull Request Content"]
+
+    E <--> K["GitHub CLI Helpers<br/>(github_cli.py)"]
+    E <--> L[("Local Repository Workspace<br/>.artifact-assistant/repositories")]
+
+    K <--> M["Git and GitHub CLI (gh)"]
+    M <--> N[("Target GitHub Repository")]
+
+    J -. "Generated content is applied" .-> E
+
+### Main Components
+
+- **React Frontend:** Provides the artifact upload interface, release questionnaire, change review, and question management.
+- **Python HTTP Server:** Serves the built frontend and handles API requests from the browser.
+- **Release Workflow:** Validates questionnaire answers, prepares branch changes, and coordinates the selected operation.
+- **Question Management:** Stores the default and user-added questions in `questions_config.json`.
+- **Report Generator:** Creates release documentation for `README.md` and the pull request description.
+- **Git and GitHub CLI Helpers:** Handle repository cloning, branch operations, commits, pushes, GitHub releases, and pull requests.
+- **Local Workspace:** Stores uploaded AAR files and the working repository clones on the user's computer.
+
+## Operation Behaviour
+
+| Operation | Result |
+|---|---|
+| **Upload Artifact** | Commits and pushes the AAR to the selected branch. It does not create a GitHub release/tag or pull request. |
+| **Release / Questionnaire Information** | Records the AAR and release information, pushes the changes, creates a GitHub release/tag with the AAR attached when applicable, and opens a pull request. |
 
 ## Notes
 

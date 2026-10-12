@@ -1,14 +1,23 @@
+# Python cache and virtual environments
 __pycache__/
 *.py[cod]
 .venv/
 venv/
+
+# Frontend dependencies and generated build output
 frontend/node_modules/
+frontend/dist/
+
+# Local application data and user-edited questionnaire
 .artifact-assistant/
 questions_config.json
+
+# Secrets and local files
 .env
 .env.*
 !.env.example
 *.aar
 *.zip
+*.log
 .DS_Store
 Thumbs.db

@@ -1,12 +1,18 @@
 import { ArrowRight, BranchIcon, CheckIcon, FileCheckIcon, FileIcon, HelpIcon, PulseIcon } from "../icons.jsx";
 
 const STEPS = [
-  { icon: <FileIcon width={22} height={22} />, tag: "01 · ARTIFACT UPLOAD", title: "Select and upload your AAR",
-    text: "Choose an .aar file from your computer, specify the target repository and version, and upload it to the corresponding GitHub Release. Existing assets with the same filename are not overwritten." },
-  { icon: <HelpIcon width={22} height={22} />, tag: "02 · RELEASE INFORMATION", title: "Complete release details",
-    text: "Answer questions about the artifact, release changes, testing, and deployment. Relevant follow-up questions appear automatically. Choose a new branch or an existing branch associated with your pull request." },
-  { icon: <BranchIcon width={22} height={22} />, tag: "03 · REVIEW & PULL REQUEST", title: "Review and submit changes",
-    text: "Preview the proposed README.md changes before confirming. The application commits and pushes the update, then creates a new pull request or updates the matching open pull request through GitHub CLI." },
+  {
+    icon: <FileIcon width={22} height={22} />, tag: "01 · ARTIFACT UPLOAD", title: "Select and upload your AAR",
+    text: "Choose an .aar file from your computer, specify the target repository and version, and upload it to the corresponding GitHub Release. Existing assets with the same filename are not overwritten."
+  },
+  {
+    icon: <HelpIcon width={22} height={22} />, tag: "02 · RELEASE INFORMATION", title: "Complete release details",
+    text: "Answer questions about the artifact, release changes, testing, and deployment. Relevant follow-up questions appear automatically. Choose a new branch or an existing branch associated with your pull request."
+  },
+  {
+    icon: <BranchIcon width={22} height={22} />, tag: "03 · REVIEW & PULL REQUEST", title: "Review and submit changes",
+    text: "Preview the proposed README.md changes before confirming. The application commits and pushes the update, then creates a new pull request or updates the matching open pull request through GitHub CLI."
+  },
 ];
 
 export default function Home({ onStart }) {

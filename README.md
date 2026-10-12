@@ -1,138 +1,86 @@
-# GitHub Artifact Release Assistant (web UI)
+# GitHub Artifact Release Assistant
 
-Upload an Android `.aar` artifact, answer release / testing questions, and let the
-tool create the branch, update `README.md`, push, create the GitHub release/tag and
-open a Pull Request — now from a website that runs on your own computer.
+A local web application for preparing Android `.aar` artifact uploads and SDK releases. It provides a React interface backed by a Python server and uses Git and the GitHub CLI (`gh`) for repository operations.
 
-All GitHub operations still go through **Git** and the **GitHub CLI (`gh`)**.
-The Python standard library is the only Python dependency.
+**This project is intended to run on your computer. It is not a GitHub Pages website.** GitHub Pages only serves static files and cannot run this application's Python backend or GitHub CLI commands. The repository contains the source code; it does not automatically publish a website.
 
 ## Requirements
 
-- Python 3.10+
-- Git and GitHub CLI (`gh`) — run `gh auth login` once beforehand
-- Node.js + npm **only if** you want to rebuild the website (a built copy is included in `frontend/dist`)
+- Python 3.10 or later
+- Node.js and npm
+- Git
+- GitHub CLI (`gh`)
+- A GitHub account authenticated in the GitHub CLI
 
-## Run
+Install GitHub CLI if needed, then sign in once:
 
-```bash
+```powershell
+gh auth login
+```
+
+## Build and run on Windows
+
+Open PowerShell in the project root (`release_assistant-web`). Build the frontend once:
+
+```powershell
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+Start the application:
+
+```powershell
 python main.py
 ```
 
-This starts the backend and opens http://127.0.0.1:8765 in your browser.
+The application opens in your browser at `http://127.0.0.1:8765`. Keep the terminal open while using it. Press `Ctrl+C` in that terminal to stop the server.
 
-Optional (rebuild the React frontend, then start):
+To build the frontend and start the application in one command, run this from the project root:
 
-```bash
+```powershell
 cd frontend
-npm install
-npm start          # builds the UI and starts main.py
+npm start
 ```
 
-## Flow
+## How it works
 
-1. **Start a release** → upload the artifact (only `.aar`, validated as a ZIP archive)
-2. **Artifact information** questions
-3. Choose **Upload Artifact** (branch only) or **Release / Questionnaire Information**
-4. Release information → purpose (Internal Testing / Personal Testing / Production) and its questions
-5. Verify answers → choose a new or existing branch → review the staged changes
-6. Confirm → commit, push, release/tag (AAR attached) and Pull Request
+1. Upload an Android `.aar` file. The app checks that the file is a ZIP-based AAR archive.
+2. Enter artifact information and, when creating a release, answer the release and testing questions.
+3. Select a new or existing release branch and review the proposed repository changes.
+4. Confirm the operation. The app uses Git and the GitHub CLI to push the artifact and, for the release workflow, create a GitHub release/tag and pull request.
 
-## Manage Questions
+The **Upload Artifact** option uploads the AAR to the selected branch without creating a release/tag or pull request. The **Release / Questionnaire Information** option records release information in the repository `README.md`, creates the GitHub release/tag, and opens a pull request.
 
-Sidebar → **Manage Questions**. Add a question to one of: Artifact information,
-Release information, Internal testing, Personal testing or Production, and choose
-whether it is required and whether it is a Yes/No or text answer. Deleting asks for
-confirmation. Questions are stored in `questions_config.json` (created on first run;
-delete the file to restore the defaults). Answers to added questions are written to the
-matching README section. Version, repository and source branch cannot be removed
-because the branch/release/PR steps need them.
+## Manage questions
+
+Use **Manage Questions** in the sidebar to add or remove questionnaire items. Custom questions are saved locally in `questions_config.json`. This file is generated on first run and is ignored by Git so that personal question changes are not accidentally committed.
 
 ## Project structure
 
+```text
+main.py                    Starts the local application and opens the browser
+server.py                  Python HTTP server and JSON API
+workflow.py                Release workflow and review/confirmation steps
+github_cli.py               Git and GitHub CLI helpers
+questions.py                Default questions and local question management
+report_generator.py         README and pull request content generation
+parser.py                   Original local-search helper
+config.py                   Local paths and server settings
+requirements.txt            Python dependency note
+frontend/
+  src/                     Readable React components and CSS source
+  build.mjs                Builds the frontend into frontend/dist/
+  start.mjs                Starts the Python server after the frontend build
+  package.json              Frontend scripts and dependencies
 ```
-main.py               start here (starts the server, opens the browser)
-server.py             local HTTP server + JSON API (standard library)
-workflow.py           the release workflow (the former CLI logic in main.py)
-questions.py          default questions + add/remove store
-github_cli.py         git / gh helpers
-report_generator.py   README + Pull Request text
-parser.py             original local-search helper (no longer used by the UI)
-config.py             paths, port, defaults
-frontend/             React source (src/) and built site (dist/)
-```
 
-## Architecture
+`frontend/dist/` and `frontend/node_modules/` are generated locally and are not committed. Run the build commands above before starting the app from a fresh clone.
 
-The application uses a React frontend with a Python backend. The backend manages the release workflow and executes Git and GitHub CLI commands to perform repository operations.
+## Notes
 
-                    +----------------------+
-                    |    User / Browser    |
-                    +----------+-----------+
-                               |
-                               v
-                    +----------------------+
-                    |     React Web UI     |
-                    |     (Frontend)       |
-                    +----------+-----------+
-                               |
-                               | HTTP / JSON API
-                               v
-                    +----------------------+
-                    |  Python HTTP Server  |
-                    |      server.py       |
-                    +----------+-----------+
-                               |
-                +--------------+--------------+
-                |              |              |
-                v              v              v
-    +------------------+ +----------------+ +------------------+
-    | Question         | | Release        | | AAR Upload       |
-    | Management       | | Workflow       | | Handler          |
-    | questions.py     | | workflow.py    | | server.py        |
-    +--------+---------+ +--------+-------+ +--------+---------+
-             |                    |                  |
-             v                    |                  v
-    +------------------+          |         +------------------+
-    | questions_config |          |         | Local AAR Uploads |
-    | .json            |          |         | .artifact-        |
-    +------------------+          |         | assistant/uploads |
-                                  |
-                    +-------------+-------------+
-                    |             |             |
-                    v             v             v
-           +----------------+ +-------------+ +------------------+
-           | Report         | | GitHub CLI  | | Local Repository |
-           | Generator      | | Helpers     | | Workspace        |
-           | report_        | | github_     | | .artifact-       |
-           | generator.py   | | cli.py      | | assistant/       |
-           +-------+--------+ +------+------+ | repositories/    |
-                   |                 |        +------------------+
-                   v                 v
-           +----------------+ +------------------+
-           | README / PR    | | Git + GitHub CLI  |
-           | Content        | | (gh)              |
-           +----------------+ +--------+---------+
-                                       |
-                                       v
-                              +--------------------+
-                              | Target GitHub      |
-                              | Repository         |
-                              +--------------------+
-
-### Main Components
-
-- **React Frontend:** Provides the artifact upload interface, release questionnaire, change review, and question management.
-- **Python HTTP Server:** Serves the built frontend and handles API requests from the browser.
-- **Release Workflow:** Validates questionnaire answers, prepares branch changes, and coordinates the selected operation.
-- **Question Management:** Stores the default and user-added questions in `questions_config.json`.
-- **Report Generator:** Creates release documentation for `README.md` and the pull request description.
-- **Git and GitHub CLI Helpers:** Handle repository cloning, branch operations, commits, pushes, GitHub releases, and pull requests.
-- **Local Workspace:** Stores uploaded AAR files and the working repository clones on the user's computer.
-
-## Operation Behaviour
-
-| Operation                               | Result                                                                                                                                                     |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Upload Artifact**                     | Commits and pushes the AAR to the selected branch. It does not create a GitHub release/tag or pull request.                                                |
-| **Release / Questionnaire Information** | Records the AAR and release information, pushes the changes, creates a GitHub release/tag with the AAR attached when applicable, and opens a pull request. |
+- The Python backend uses the standard library; no third-party Python packages are required.
+- Git and the GitHub CLI must be installed and available in `PATH`.
+- The app runs on `127.0.0.1` by default, so it is intended for local use.
+- GitHub Pages deployment configuration is intentionally not included. Pushing this repository to GitHub only stores the source code; it does not host the application.
